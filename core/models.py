@@ -8,6 +8,7 @@ class User(AbstractUser):
     first_name = models.CharField( max_length=150, blank=False)
     last_name = models.CharField( max_length=150, blank=False)
     email = models.EmailField(blank=False)
+    is_active = models.BooleanField(default=False)
     groups = models.ManyToManyField(
         'auth.Group',
         related_name='core_user_set',
