@@ -24,6 +24,8 @@ class User(AbstractUser):
         help_text='Specific permissions for this user.',
         verbose_name='user permissions',
     )
+    class Meta:
+        db_table = "tblUsers"
 
 class Category(models.Model):
     name = models.CharField(max_length=50, unique=True)
