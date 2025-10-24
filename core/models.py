@@ -1,12 +1,14 @@
-# Step 3 Models (3NF - FINAL)
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.utils import timezone
 
 class User(AbstractUser):
-    """Extended User model - adds currency"""
     date_joined = models.DateTimeField(default=timezone.now)
     currency = models.CharField(max_length=3, default='USD')
+    first_name = models.CharField( max_length=150, blank=False)
+    last_name = models.CharField( max_length=150, blank=False)
+    email = models.EmailField(blank=False)
+    is_active = models.BooleanField(default=False)
     groups = models.ManyToManyField(
         'auth.Group',
         related_name='core_user_set',
@@ -22,6 +24,8 @@ class User(AbstractUser):
         help_text='Specific permissions for this user.',
         verbose_name='user permissions',
     )
+    class Meta:
+        db_table = "tblUsers"
 
 class Category(models.Model):
     name = models.CharField(max_length=50, unique=True)
@@ -31,6 +35,7 @@ class Category(models.Model):
     )
     class Meta:
         ordering = ['name']
+        db_table = "tblCategory"
     
     def __str__(self):
         return self.name
@@ -49,6 +54,7 @@ class Transaction(models.Model):
             models.Index(fields=['user', 'date']), 
             models.Index(fields=['category']),
         ]
+        db_table = "tblTransaction"
     
     def __str__(self):
         return f"{self.category.name}: ${self.amount}"
@@ -71,3 +77,4 @@ class Budget(models.Model):
     class Meta:
         unique_together = ['user', 'category', 'month']
         indexes = [models.Index(fields=['user', 'month'])]
+        db_table = "tblBudget"
