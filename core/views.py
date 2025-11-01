@@ -1,16 +1,16 @@
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework import status
 from core.serializers import UserSerializer, BudgetSerializer, LoginSerializer, TransactionSerializer, ChangePasswordSerializer
-from core.models import User
+from core.models import User, Category
 from rest_framework.response import Response
 from django.core.mail import send_mail
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_str, force_bytes
-from rest_framework_simplejwt.views import TokenObtainPairView
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework.permissions import IsAdminUser, IsAuthenticated
+from rest_framework.permissions import IsAuthenticated
+import time
 
 token_generator = PasswordResetTokenGenerator()
 
@@ -18,6 +18,7 @@ token_generator = PasswordResetTokenGenerator()
 def sign_up(request):
     if request.method == "POST":
         serializer = UserSerializer(data = request.data)
+        serializer.is_valid(raise_exception=True)
         username = serializer.validated_data.get("username")
         email = serializer.validated_data.get("email")
 
@@ -29,9 +30,25 @@ def sign_up(request):
         
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-    elif request.method == "GET":
-        return Response(User.objects.all().values())
+            user = User.objects.get(email=email)
+
+            time.sleep(3)
+            token = token_generator.make_token(user)
+            uid = urlsafe_base64_encode(force_bytes(user.pk))
+
+            activation_link = f"{request.scheme}://{request.get_host()}/api/activate/{uid}/{token}"
+            try:
+                send_mail(
+                    subject= "Activate your account",
+                    from_email="yaba8084@gmail.com",
+                    message=f"Click the link to activate your account: {activation_link}",
+                    recipient_list=[email],
+                    fail_silently=False
+                )
+                return Response({"message": "Activation email sent"}, status=status.HTTP_200_OK)
+            except Exception as e:
+                return Response({"message": "An error occurred"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 @api_view(["POST"])
 def user_login(request):
@@ -64,33 +81,6 @@ def user_login(request):
                 return Response({
                     "message": "Incorrect credentials"
                 }, status=status.HTTP_401_UNAUTHORIZED)
-
-@api_view(["POST"])
-def activate_account(request):
-    email = request.data.get("email")
-    if User.objects.filter(email=email).exists():
-        user = User.objects.get(email=email)
-        if user.is_active:
-            return Response({"message": "Account already activated"}, status=status.HTTP_400_BAD_REQUEST)
-
-        token = token_generator.make_token(user)
-        uid = urlsafe_base64_encode(force_bytes(user.pk))
-
-        activation_link = f"{request.scheme}://{request.get_host()}/api/activate/{uid}/{token}"
-
-        try:
-            send_mail(
-                subject= "Activate your account",
-                from_email="yaba8084@gmail.com",
-                message=f"Click the link to activate your account: {activation_link}",
-                recipient_list=[email],
-                fail_silently=False
-            )
-            return Response({"message": "Activation email sent"}, status=status.HTTP_200_OK)
-        except Exception as e:
-            return Response({"message": "An error occurred"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    else:
-        return Response({"message": "Email not in use"})
     
 @api_view(["GET"])
 def activate_account_confirm(request, uidb64, token):
@@ -143,3 +133,10 @@ def create_transaction(request):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
 
+@api_view(["GET"])
+def view_categories(request):
+    if request.method == "GET":
+        values = Category.objects.all().values()
+        return Response(values, status=status.HTTP_200_OK)
+    else:
+        return Response(status=status.HTTP_400_BAD_REQUEST)
