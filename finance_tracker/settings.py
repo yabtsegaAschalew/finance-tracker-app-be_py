@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'core',
     'anymail',
+    'drf_yasg',
 ]
 
 MIDDLEWARE = [
