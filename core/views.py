@@ -1,7 +1,7 @@
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework import status
 from core.serializers import UserSerializer, BudgetSerializer, LoginSerializer, TransactionSerializer, ChangePasswordSerializer
-from core.models import User, Category
+from core.models import User, Category, Budget
 from rest_framework.response import Response
 from django.core.mail import send_mail
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
@@ -14,74 +14,66 @@ import time
 
 token_generator = PasswordResetTokenGenerator()
 
-@api_view(["POST", "GET"])
+@api_view(["POST"])
 def sign_up(request):
-    if request.method == "POST":
-        serializer = UserSerializer(data = request.data)
-        serializer.is_valid(raise_exception=True)
-        username = serializer.validated_data.get("username")
-        email = serializer.validated_data.get("email")
 
-        if User.objects.filter(username=username).exists():
-            return Response({"message": "Username taken"}, status=status.HTTP_403_FORBIDDEN)
-        if User.objects.filter(email=email).exists():
-            return Response({"message": "Email already taken"}, status=status.HTTP_403_FORBIDDEN)
-        
-        
-        if serializer.is_valid():
-            serializer.save()
-            user = User.objects.get(email=email)
+    serializer = UserSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
 
-            time.sleep(3)
-            token = token_generator.make_token(user)
-            uid = urlsafe_base64_encode(force_bytes(user.pk))
+    username = serializer.validated_data.get("username")
+    email = serializer.validated_data.get("email")
 
-            activation_link = f"{request.scheme}://{request.get_host()}/api/activate/{uid}/{token}"
-            try:
-                send_mail(
-                    subject= "Activate your account",
-                    from_email="yaba8084@gmail.com",
-                    message=f"Click the link to activate your account: {activation_link}",
-                    recipient_list=[email],
-                    fail_silently=False
-                )
-                return Response({"message": "Activation email sent"}, status=status.HTTP_200_OK)
-            except Exception as e:
-                return Response({"message": "An error occurred"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    if User.objects.filter(username=username).exists():
+        return Response({"message": "Username taken"}, status=status.HTTP_403_FORBIDDEN)
+    if User.objects.filter(email=email).exists():
+        return Response({"message": "Email already taken"}, status=status.HTTP_403_FORBIDDEN)
+
+
+    user = serializer.save()
+
+
+    try:
+        time.sleep(1)
+        token = token_generator.make_token(user)
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+
+        activation_link = f"{request.scheme}://{request.get_host()}/api/activate/{uid}/{token}"
+        send_mail(
+            subject="Activate your account",
+            from_email="yaba8084@gmail.com",
+            message=f"Click the link to activate your account: {activation_link}",
+            recipient_list=[email],
+            fail_silently=False,
+        )
+        return Response({"message": "Activation email sent"}, status=status.HTTP_200_OK)
+    except Exception:
+        return Response({"message": "An error occurred sending activation email"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @api_view(["POST"])
 def user_login(request):
-    if request.method == "POST":
-        serializer = LoginSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+    serializer = LoginSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
 
-        username = serializer.validated_data.get("username")
-        password = serializer.validated_data.get("password")
+    username = serializer.validated_data.get("username")
+    password = serializer.validated_data.get("password")
 
-        if not username or not password:
-            return Response({
-                "message": "Username and Password are required"
-            }, status=status.HTTP_401_UNAUTHORIZED)
-        elif username and password:
-            user = authenticate(username=username, password=password)
-            activation_status = User.objects.get(username=username)
-            if activation_status.is_active and user:
-                refresh = RefreshToken.for_user(user)
-                return Response({
-                    "refresh": str(refresh),
-                    "access": str(refresh.access_token),
-                }, status=status.HTTP_200_OK)
+    if not username or not password:
+        return Response({"message": "Username and password are required"}, status=status.HTTP_400_BAD_REQUEST)
+
+    user = authenticate(request=request, username=username, password=password)
+    if user is None:
+        return Response({"message": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
+
+    if not user.is_active:
+        return Response({"message": "Account is not active"}, status=status.HTTP_403_FORBIDDEN)
+
+    refresh = RefreshToken.for_user(user)
+    return Response({
+        "refresh": str(refresh), 
+        "access": str(refresh.access_token)
+        }, status=status.HTTP_200_OK)
             
-            elif not activation_status.is_active:
-                return Response({
-                    "message": "Account is not active"
-                }, status=status.HTTP_200_OK)
-            else:
-                return Response({
-                    "message": "Incorrect credentials"
-                }, status=status.HTTP_401_UNAUTHORIZED)
-    
 @api_view(["GET"])
 def activate_account_confirm(request, uidb64, token):
     try:
@@ -119,16 +111,21 @@ def change_password(request):
 @api_view(["POST"])
 def create_budget(request):
     if request.method == "POST":
-        serializer = BudgetSerializer(data = request.data)
+        serializer = BudgetSerializer(data=request.data)
+        print(request.user)
         if serializer.is_valid():
-            serializer.save()
+            serializer.save(user=request.user)
             return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    elif request.method == "GET":
+        return Response(Budget.objects.all().values)
 
 @permission_classes([IsAuthenticated])
 @api_view(["POST"])
 def create_transaction(request):
     if request.method == "POST":
         serializer = TransactionSerializer(data = request.data)
+        
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
