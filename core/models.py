@@ -24,6 +24,8 @@ class User(AbstractUser):
         help_text='Specific permissions for this user.',
         verbose_name='user permissions',
     )
+    USERNAME_FIELD = 'username'                    
+    REQUIRED_FIELDS = ['email', 'first_name', 'last_name']
     class Meta:
         db_table = "tblUsers"
 
@@ -73,6 +75,7 @@ class Budget(models.Model):
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
     month = models.DateField(auto_now_add=True)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
+    transaction = models.OneToOneField(Transaction, on_delete=models.CASCADE, null=True)
     
     class Meta:
         unique_together = ['user', 'category', 'month']
