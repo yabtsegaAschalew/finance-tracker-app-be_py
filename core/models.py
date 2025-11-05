@@ -37,7 +37,8 @@ class Category(models.Model):
     )
     priority = models.CharField(
         max_length=10,
-        choices=[('low', 'Low'), ('medium', 'Medium'), ('high','High')]
+        choices=[('low', 'Low'), ('medium', 'Medium'), ('high','High')],
+        null=True
     )
     class Meta:
         ordering = ['name']
