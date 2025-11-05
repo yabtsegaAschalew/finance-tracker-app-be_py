@@ -30,7 +30,7 @@ class User(AbstractUser):
         db_table = "tblUsers"
 
 class Category(models.Model):
-    name = models.CharField(max_length=50, unique=True)
+    name = models.CharField(max_length=50, unique=False)
     type = models.CharField(
         max_length=10, 
         choices=[('income', 'Income'), ('expense', 'Expense')]
@@ -78,6 +78,5 @@ class Budget(models.Model):
     transaction = models.OneToOneField(Transaction, on_delete=models.CASCADE, null=True)
     
     class Meta:
-        unique_together = ['user', 'category', 'month']
         indexes = [models.Index(fields=['user', 'month'])]
         db_table = "tblBudget"
