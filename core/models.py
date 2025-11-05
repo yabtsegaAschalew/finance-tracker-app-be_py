@@ -80,3 +80,4 @@ class Budget(models.Model):
     class Meta:
         indexes = [models.Index(fields=['user', 'month'])]
         db_table = "tblBudget"
+        
