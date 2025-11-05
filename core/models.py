@@ -35,6 +35,10 @@ class Category(models.Model):
         max_length=10, 
         choices=[('income', 'Income'), ('expense', 'Expense')]
     )
+    priority = models.CharField(
+        max_length=10,
+        choices=[('low', 'Low'), ('medium', 'Medium'), ('high','High')]
+    )
     class Meta:
         ordering = ['name']
         db_table = "tblCategory"
@@ -80,4 +84,3 @@ class Budget(models.Model):
     class Meta:
         indexes = [models.Index(fields=['user', 'month'])]
         db_table = "tblBudget"
-        
