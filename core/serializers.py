@@ -21,7 +21,7 @@ class UserSerializer(serializers.ModelSerializer):
 class BudgetSerializer(serializers.ModelSerializer):
     class Meta:
         model = Budget
-        fields = ["user_id", "category", "amount", "transaction"]
+        fields = ["user_id", "category", "amount", "month", "transaction"]
         read_only_fields = ['user_id']
 
 class LoginSerializer(serializers.Serializer):

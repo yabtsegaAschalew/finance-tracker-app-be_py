@@ -11,9 +11,12 @@ from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import IsAuthenticated
 import time
+from django.utils import timezone
+from drf_yasg.utils import swagger_auto_schema
 
 token_generator = PasswordResetTokenGenerator()
 
+@swagger_auto_schema(method='post', request_body=UserSerializer)
 @api_view(["POST"])
 def sign_up(request):
 
@@ -50,6 +53,7 @@ def sign_up(request):
         return Response({"message": "An error occurred sending activation email"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+@swagger_auto_schema(method='post', request_body=LoginSerializer)
 @api_view(["POST"])
 def user_login(request):
     serializer = LoginSerializer(data=request.data)
@@ -108,19 +112,31 @@ def change_password(request):
     
     
 @permission_classes([IsAuthenticated])
-@api_view(["POST"])
+@swagger_auto_schema(method='post', request_body=BudgetSerializer)
+@api_view(["POST", "GET"])
 def create_budget(request):
     if request.method == "POST":
         serializer = BudgetSerializer(data=request.data)
-        print(request.user)
-        if serializer.is_valid():
-            serializer.save(user=request.user)
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer.is_valid(raise_exception=True)
+
+        # current_month = timezone.now().month
+        #duplicate_values = Budget.objects.filter(user=request.user, month__month=timezone.now().month, transaction="null")
+
+        # #filter by category
+        
+        # if duplicate_values:
+        #      return Response({"message": "Values already exist update are allowed"})
+
+        serializer.save(user=request.user)
+        return Response(serializer.data)
     elif request.method == "GET":
-        return Response(Budget.objects.all().values)
+        query = Budget.objects.filter(user=request.user)
+        print(query)
+        serializer = BudgetSerializer(query, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 @permission_classes([IsAuthenticated])
+@swagger_auto_schema(method='post', request_body=TransactionSerializer)
 @api_view(["POST"])
 def create_transaction(request):
     if request.method == "POST":
