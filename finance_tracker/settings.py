@@ -136,6 +136,8 @@ ANYMAIL = {
     "BREVO_API_KEY": config("BREVO_API_KEY")
 }
 
+CHAPA_PRIVATE_KEY = config("CHAPA_PRIVATE_KEY")
+
 DEFAULT_FROM_EMAIL = "yaba8084@gmail.com"
 
 SIMPLE_JWT = {

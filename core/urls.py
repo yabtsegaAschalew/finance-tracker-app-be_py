@@ -21,6 +21,9 @@ urlpatterns = [
     path("create-budget/", views.create_budget),
     path("login/", views.user_login),
     path("create-transaction/", views.create_transaction),
-    path("view-categories", views.view_categories),
+    path("view-categories/", views.view_categories),
+
+    path("manage-budget/", views.manage_budget),
+    path("pay/", views.chapa_payment, name="payment_gateway"),
     
 ]
