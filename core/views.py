@@ -13,8 +13,7 @@ from rest_framework.permissions import IsAuthenticated
 import time, uuid
 from datetime import datetime
 from drf_yasg.utils import swagger_auto_schema
-import requests
-from finance_tracker.settings import CHAPA_PRIVATE_KEY
+from core.utils import payment_gateway
 
 token_generator = PasswordResetTokenGenerator()
 
@@ -142,6 +141,7 @@ def create_budget(request):
 @api_view(["POST"])
 def create_transaction(request):
     if request.method == "POST":
+        
         serializer = TransactionSerializer(data = request.data)
         
         if serializer.is_valid():
@@ -204,62 +204,29 @@ def manage_budget(request):
 @permission_classes([IsAuthenticated])
 def chapa_payment(request):
     if request.method == "POST":
-        api_url = "https://api.chapa.co/v1/transaction/initialize"
-        private_key = CHAPA_PRIVATE_KEY
-
-        amount = request.data.get("amount", 500)
-        email = request.data.get("email", "test@example.com")
-        first_name = request.data.get("first_name", "Test")
-        last_name = request.data.get("last_name", "User")
-
+        amount = None
         tx_ref = f"negade-tx-{uuid.uuid4().hex[:12]}"
 
-        payload = {
-            "amount": str(amount),
-            "currency": "ETB",
-            "email": "yabtsegaaschalew1@gmail.com",
-            "first_name": first_name,
-            "last_name": last_name,
-            "tx_ref": tx_ref,
-            "callback_url": "http://127.0.0.1:8000/api/chapa/callback/",
-            "return_url": "http://127.0.0.1:8000/api/chapa/success/",
-            "customization": {
-                "title": "Let us do this",
-                "description": "Paying with Confidence with Chapa",
-            },
-        }
-
-        headers = {
-            "Authorization": f"Bearer {private_key}",
-            "Content-Type": "application/json",
-        }
-
-        try:
-            response = requests.post(api_url, json=payload, headers=headers)
-            print("RAW:", response.text)
-
-            if not response.text.strip():
-                return Response(
-                    {"error": "Empty response from Chapa"},
-                    status=status.HTTP_502_BAD_GATEWAY,
-                )
-
-            data = response.json()
-
-            if response.status_code == 200 and data.get("status") == "success":
-                checkout_url = data["data"]["checkout_url"]
-                return Response(
-                    {"checkout_url": checkout_url, "tx_ref": tx_ref, "amount": amount},
-                    status=status.HTTP_200_OK,
-                )
-
-            return Response(
-                {"error": data},
-                status=status.HTTP_400_BAD_REQUEST,
+        data = payment_gateway(
+            amount, 
+            request.user.email, 
+            request.user.first_name, 
+            request.user.last_name, 
+            request, 
+            request.user.phone_number,
+            tx_ref
             )
+        if data["status"] == "success":
+            transaction_data = {
+  
+            }
+        elif data["status"] == "failed":
+            pass
 
-        except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return data
+        
+
+        
 
 
 @api_view(["GET"])
