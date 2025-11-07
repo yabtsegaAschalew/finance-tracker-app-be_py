@@ -32,7 +32,7 @@ class LoginSerializer(serializers.Serializer):
 class TransactionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Transaction
-        fields = ["user", "category", "date", "amount", "description"]
+        fields = ["user", "category", "date", "amount", "description", "tx_ref", "status"]
 
 class ChangePasswordSerializer(serializers.Serializer):
     new_password = serializers.CharField(required=True, write_only=True)
