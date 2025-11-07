@@ -80,6 +80,7 @@ class Budget(models.Model):
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
     month = models.DateField(auto_now_add=True)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
+    due_date = models.DateField(null=True)
     transaction = models.OneToOneField(Transaction, on_delete=models.CASCADE, null=True)
     
     class Meta:
