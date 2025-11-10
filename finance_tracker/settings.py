@@ -1,6 +1,7 @@
 from pathlib import Path
 from decouple import config
 from datetime import timedelta
+from celery.schedules import crontab
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -192,3 +193,19 @@ SWAGGER_SETTINGS = {
     },
     'USE_SESSION_AUTH': False,
 }
+
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+
+
+CELERY_TIMEZONE = 'Africa/Addis_Ababa'
+CELERY_ENABLE_UTC = True
+
+
+CELERY_BEAT_SCHEDULE = {
+    'send-budget-reminders-daily': {
+        'task': 'core.tasks.send_budget_reminders',
+        'schedule': crontab(hour=8, minute=0),
+    },
+}
+
