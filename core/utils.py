@@ -3,9 +3,12 @@ from rest_framework import status
 from rest_framework.response import Response
 from finance_tracker.settings import CHAPA_PRIVATE_KEY
 
+url = "https://api.chapa.co/v1"
+private_key = CHAPA_PRIVATE_KEY
+
 def payment_gateway(amount, email, first_name, last_name, request, phone_number, tx_ref):
-    api_url = "https://api.chapa.co/v1/transaction/initialize"
-    private_key = CHAPA_PRIVATE_KEY
+    api_url = f"{url}/transaction/initialize"
+    
 
     payload = {
         "amount": str(amount),
@@ -38,20 +41,42 @@ def payment_gateway(amount, email, first_name, last_name, request, phone_number,
             )
 
         data = response.json()
-        print(data)
 
         if response.status_code == 200 and data.get("status") == "success":
             checkout_url = data["data"]["checkout_url"]
 
             return Response(
-                {"checkout_url": checkout_url, "tx_ref": tx_ref, "amount": amount},
+                {
+                    "checkout_url": checkout_url, 
+                    "tx_ref": tx_ref, 
+                    "amount": amount,
+                    "status": data.get("status")
+                },
                 status=status.HTTP_200_OK,
             )
 
         return Response(
-            {"error": data},
+            {
+                "error": data,
+                "status": data.get("status")
+            },
             status=status.HTTP_400_BAD_REQUEST,
         )
 
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+# Verify payment
+
+
+def verify_payment(tx_ref):
+    api_url = f"{url}/transaction/verify/{tx_ref}"
+    payload = ''
+    headers = {
+        'Authorization': f'Bearer {private_key}'
+    }
+    response = requests.get(api_url, headers=headers, data=payload)
+    data = response.text
+    print(data)
+    return Response(data)
+    

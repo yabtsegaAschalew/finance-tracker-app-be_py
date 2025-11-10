@@ -1,4 +1,4 @@
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework import status
 from core.serializers import UserSerializer, BudgetSerializer, LoginSerializer, TransactionSerializer, ChangePasswordSerializer
 from core.models import User, Category, Budget, Transaction
@@ -13,7 +13,9 @@ from rest_framework.permissions import IsAuthenticated
 import time, uuid
 from datetime import datetime
 from drf_yasg.utils import swagger_auto_schema
-from core.utils import payment_gateway
+from core.utils import payment_gateway, verify_payment
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from django.http import HttpResponse
 
 token_generator = PasswordResetTokenGenerator()
 
@@ -22,6 +24,7 @@ token_generator = PasswordResetTokenGenerator()
 def sign_up(request):
 
     serializer = UserSerializer(data=request.data)
+    print(serializer)
     serializer.is_valid(raise_exception=True)
 
     username = serializer.validated_data.get("username")
@@ -168,6 +171,7 @@ def manage_budget(request):
     bonus: set up a way for the payment to be done automatically so that 
     
     """
+    print(request.user)
     if request.method == "POST":
         get_income = Budget.objects.filter(user=request.user).select_related("user", "category", "transaction").values("user__first_name", "transaction__id", "amount", "category__name", "category__type", "category__priority", "due_date", "user__email")
 
@@ -201,33 +205,69 @@ def manage_budget(request):
         return Response({"message": f"{get_income.all()}"})
 
 @api_view(["POST"])
+@authentication_classes([JWTAuthentication])
 @permission_classes([IsAuthenticated])
 def chapa_payment(request):
-    if request.method == "POST":
-        amount = None
-        tx_ref = f"negade-tx-{uuid.uuid4().hex[:12]}"
+    amount = 200
+    tx_ref = f"negade-tx-{uuid.uuid4().hex[:12]}"
 
-        data = payment_gateway(
-            amount, 
-            request.user.email, 
-            request.user.first_name, 
-            request.user.last_name, 
-            request, 
-            request.user.phone_number,
-            tx_ref
-            )
-        if data["status"] == "success":
-            transaction_data = {
-  
+    # Call payment gateway
+    response = payment_gateway(
+        amount,
+        request.user.email,
+        request.user.first_name,
+        request.user.last_name,
+        request,
+        request.user.phone_number,
+        tx_ref
+    )
+
+    data = response.data if isinstance(response, Response) else response
+
+    if data.get("status") == "success":
+        serializer = TransactionSerializer(
+            data={
+                'user': request.user.id,
+                'category': 1,  
+                'amount': amount,
+                'description': "",
+                'tx_ref': tx_ref,
+                'status': "Pending"
             }
-        elif data["status"] == "failed":
-            pass
+        )
 
-        return data
+        if serializer.is_valid():
+            serializer.save(user=request.user)
+            print("Transaction saved successfully")
+        else:
+            print("Serializer errors:", serializer.errors)
         
+        verify_tx_ref = verify_payment(tx_ref)
+        if verify_tx_ref.get("status") == "Success":
+            print("inside verify transaction")
+            transaction_update = Transaction.objects.filter(tx_ref=tx_ref)
+            transaction_update.status = "Success"
+            transaction_update.save()
 
+        print(verify_payment(tx_ref))
+
+    return response  
         
+# @api_view(["POST"])
+# def chapa_webhook(request):
+#     if request.method == "POST":    
+#         url = "https://api.chapa.co/v1/transaction/verify/{}"
 
+#         payload = ''
+#         headers = {
+#             'Authorization': 'Bearer CHASECK_TEST-mgWrd2rhogka8FINIdgfl7wM2Yo1mpwL'
+#         }
+
+#         response = requests.get(url, headers=headers, data=payload)
+#         data = response.text
+#         print(data)
+
+#         return Response("Webhook")
 
 @api_view(["GET"])
 def chapa_success(request):
