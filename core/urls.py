@@ -25,6 +25,9 @@ urlpatterns = [
 
     path("manage-budget/", views.manage_budget),
     path("pay/", views.chapa_payment, name="payment_gateway"),
-    path("payment-success/", views.chapa_success)
+    path("payment-success/", views.chapa_success),
+
+    # path("chapa-webhook/", views.chapa_webhook),
+    
     
 ]
