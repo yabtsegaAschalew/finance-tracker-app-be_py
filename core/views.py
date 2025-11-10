@@ -13,9 +13,10 @@ from rest_framework.permissions import IsAuthenticated
 import time, uuid
 from datetime import datetime
 from drf_yasg.utils import swagger_auto_schema
-from core.utils import payment_gateway, verify_payment
+from core.utils import payment_gateway, verify_payment, calculate_user_payment
 from rest_framework_simplejwt.authentication import JWTAuthentication
-from django.http import HttpResponse
+from django.contrib.auth.tokens import default_token_generator
+from finance_tracker.settings import DEFAULT_FROM_EMAIL
 
 token_generator = PasswordResetTokenGenerator()
 
@@ -97,59 +98,125 @@ def activate_account_confirm(request, uidb64, token):
     except Exception as e:
         return Response({"error": "Invalid activation link"}, status=status.HTTP_400_BAD_REQUEST)
     
-
-@permission_classes([IsAuthenticated])
 @api_view(["POST"])
-def change_password(request):
-    if request.method == "POST":
-        serializer = ChangePasswordSerializer(data=request.data, context={'request': request})
-        serializer.is_valid(raise_exception=True)
-        
-        user = request.user
-        user.set_password(serializer.validated_data['new_password'])
-        user.save(update_fields=['password'])
+def password_reset_request(request):
+    """
+    Step 1: User submits their email to request a password reset.
+    """
+    email = request.data.get("email")
+
+    if not email:
+        return Response({"error": "Email is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        user = User.objects.get(email=email)
+    except User.DoesNotExist:
+        return Response({"message": "If an account with that email exists, a reset link has been sent."},
+                        status=status.HTTP_200_OK)
+
+
+    uid = urlsafe_base64_encode(force_bytes(user.pk))
+    token = default_token_generator.make_token(user)
+
+    reset_link = f"{request.scheme}://{request.get_host()}/api/reset-password-confirm/{uid}/{token}/"
+
+
+    send_mail(
+        subject="Password Reset Request",
+        message=f"Click the link below to reset your password:\n\n{reset_link}",
+        from_email=DEFAULT_FROM_EMAIL,
+        recipient_list=[email],
+    )
+
+    return Response({
+        "message": "Password reset email sent successfully."
+    }, status=status.HTTP_200_OK)
+
+
+
+@api_view(["POST"])
+def password_reset_confirm(request, uidb64, token):
+
+    new_password = request.data.get("new_password")
+    confirm_new_password = request.data.get("confirm_new_password")
+
+    if new_password == confirm_new_password:
+
+        if not new_password:
+            return Response(
+                {"error": "New password is required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            uid = force_str(urlsafe_base64_decode(uidb64))
+            user = User.objects.get(pk=uid)
+        except (User.DoesNotExist, ValueError, TypeError, OverflowError):
+            return Response({"error": "Invalid user identifier."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not default_token_generator.check_token(user, token):
+            return Response({"error": "Invalid or expired token."}, status=status.HTTP_400_BAD_REQUEST)
+
+        user.set_password(new_password)
+        user.save()
 
         return Response(
-            {"message": "Password changed successfully"},
+            {"message": "Password has been reset successfully."},
             status=status.HTTP_200_OK
         )
-    
-    
+    else:
+        return Response(
+            {"message": "Password mismatch"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+@api_view(["POST"])
 @permission_classes([IsAuthenticated])
+def change_password(request):
+    serializer = ChangePasswordSerializer(data=request.data, context={'request': request})
+    serializer.is_valid(raise_exception=True)
+
+    user = request.user
+    user.set_password(serializer.validated_data['new_password'])
+    user.save(update_fields=['password'])
+
+    return Response(
+        {"message": "Password changed successfully"},
+        status=status.HTTP_200_OK
+    )  
+
 @swagger_auto_schema(method='post', request_body=BudgetSerializer)
 @api_view(["POST", "GET"])
+@permission_classes([IsAuthenticated])
 def create_budget(request):
+    user = request.user
+
     if request.method == "POST":
         serializer = BudgetSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        serializer.save(user=user)  # Attach current user
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-        # current_month = timezone.now().month
-        #duplicate_values = Budget.objects.filter(user=request.user, month__month=timezone.now().month, transaction="null")
-
-        # #filter by category
-        
-        # if duplicate_values:
-        #      return Response({"message": "Values already exist update are allowed"})
-
-        serializer.save(user=request.user)
-        return Response(serializer.data)
     elif request.method == "GET":
-        query = Budget.objects.filter(user=request.user)
-        print(query)
-        serializer = BudgetSerializer(query, many=True)
+        budgets = Budget.objects.filter(user=user).select_related("category", "transaction")
+        serializer = BudgetSerializer(budgets, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-@permission_classes([IsAuthenticated])
 @swagger_auto_schema(method='post', request_body=TransactionSerializer)
 @api_view(["POST"])
+@permission_classes([IsAuthenticated])
 def create_transaction(request):
-    if request.method == "POST":
-        
-        serializer = TransactionSerializer(data = request.data)
-        
-        if serializer.is_valid():
-            serializer.save(user=request.user)
-            return Response(serializer.data, status=status.HTTP_200_OK)
+    serializer = TransactionSerializer(data=request.data)
+    if serializer.is_valid():
+        transaction = serializer.save(user=request.user)
+        return Response(
+            {
+                "message": "Transaction created successfully",
+                "transaction": TransactionSerializer(transaction).data
+            },
+            status=status.HTTP_201_CREATED
+        )
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(["GET"])
 def view_categories(request):
@@ -159,61 +226,15 @@ def view_categories(request):
     else:
         return Response(status=status.HTTP_400_BAD_REQUEST)
 
-@permission_classes([IsAuthenticated])    
-@api_view(["POST"])
-def manage_budget(request):
-    """
-    get current user
-    add a column concerning with priority
-    find a way to set the payment date of certain fields so that payment could be set however the user likes,
-    when the time comes to pay send a reminder email to the user for them to pay the required amount with the correct information
-    set up a payment method so that they can pay
-    bonus: set up a way for the payment to be done automatically so that 
-    
-    """
-    print(request.user)
-    if request.method == "POST":
-        get_income = Budget.objects.filter(user=request.user).select_related("user", "category", "transaction").values("user__first_name", "transaction__id", "amount", "category__name", "category__type", "category__priority", "due_date", "user__email")
-
-        today = datetime.now()
-
-        for val in get_income:
-
-            # modify this code to run intervally
-
-            if today.month == val["due_date"].month and today.day == val["due_date"].day - 1:
-                send_mail(
-                    subject="Reminder to pay your bills",
-                    from_email="yaba8084@gmail.com",
-                    message=f"Your due date is on {val["due_date"].day}/{val["due_date"].month}/{val["due_date"].year}",
-                    recipient_list=[request.user.email],
-                    fail_silently=False,
-                )     
-
-            if (val["category__priority"] == "High" or val["category__priority"] == "high") and (val["category__type"] == "Expense" or val["category__type"]=="expense"):
-
-                send_mail(
-                    subject=f"Payment for {val["category__name"]}",
-                    from_email="yaba8084@gmail.com",
-                    message=(
-                        f"Your {val["category__name"]} payment due date is on {val["due_date"].day}/{val["due_date"].month}/{val["due_date"].year} \n please pay the payment to avoid additional fees. \n You can pay through our website {request.scheme}://{request.get_host()}/api/login"
-                        ),
-                    recipient_list=[request.user.email],
-                    fail_silently=False,
-                )   
-
-        return Response({"message": f"{get_income.all()}"})
-
 @api_view(["POST"])
 @authentication_classes([JWTAuthentication])
 @permission_classes([IsAuthenticated])
 def chapa_payment(request):
-    amount = 200
+    amount = calculate_user_payment(request.user.id)
     tx_ref = f"negade-tx-{uuid.uuid4().hex[:12]}"
 
-    # Call payment gateway
     response = payment_gateway(
-        amount,
+        amount["amount_to_pay"],
         request.user.email,
         request.user.first_name,
         request.user.last_name,
@@ -249,7 +270,6 @@ def chapa_payment(request):
             transaction_update.status = "Success"
             transaction_update.save()
 
-        print(verify_payment(tx_ref))
 
     return response  
         
@@ -278,5 +298,5 @@ def chapa_success(request):
 @api_view(["GET"])
 def chapa_callback(request):
 
-    return Response({"message": "Callback received successfully!"})
+    return Response({"message": "Callback received successfully!"})  
 

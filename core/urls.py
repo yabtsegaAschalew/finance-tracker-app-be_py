@@ -8,22 +8,19 @@ from django.contrib.auth import views as auth_views
 urlpatterns = [
 
     path("sign-up/", views.sign_up),
-    path("token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
-    path("reset-password/", auth_views.PasswordResetView.as_view(), name="password_reset"),
-    path("reset-password/done", auth_views.PasswordResetDoneView.as_view(), name="password_reset_done"),
-    path("reset-password/<uidb64>/<token>", auth_views.PasswordResetConfirmView.as_view(), name="password_reset_confirm"),
-    path("reset-password-complete/done", auth_views.PasswordResetCompleteView.as_view(), name="password_reset_complete"),
-    # To be advanced later
-    path("change-password/", views.change_password, name="password_change"),
-    path("change-password/done/", auth_views.PasswordChangeDoneView.as_view(), name="password_change_done"),
-    # Till here
     path("activate/<str:uidb64>/<str:token>", views.activate_account_confirm, name="activate-account-confirm"),
-    path("create-budget/", views.create_budget),
     path("login/", views.user_login),
+    path("token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),    
+    path("reset-password/", views.password_reset_request, name="password_reset_api"),
+    path("reset-password-confirm/<uidb64>/<token>/", views.password_reset_confirm, name="password_reset_confirm_api"),
+
+    path("change-password/", views.change_password, name="password_change"),
+    
+    path("create-budget/", views.create_budget),
+    
     path("create-transaction/", views.create_transaction),
     path("view-categories/", views.view_categories),
 
-    path("manage-budget/", views.manage_budget),
     path("pay/", views.chapa_payment, name="payment_gateway"),
     path("payment-success/", views.chapa_success),
 
