@@ -49,39 +49,42 @@ class Category(models.Model):
         return self.name
 
 class Transaction(models.Model):
+    id = models.BigAutoField(primary_key=True)  
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    category = models.ForeignKey(Category, on_delete=models.PROTECT)
-    date = models.DateField(default=timezone.now)
+    category = models.ForeignKey("Category", on_delete=models.PROTECT)
+    date = models.DateField(default=timezone.now) 
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     description = models.TextField(max_length=200, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    tx_ref = models.CharField(max_length=25, blank=False, null=False)
-    status = models.CharField(default = "Pending", choices = [
-            ('Success', 'success'), 
-            ('Pending', 'pending'), 
-            ('Failed', 'failed')
-            ], 
+    tx_ref = models.CharField(max_length=50, unique=True) 
+    status = models.CharField(
+        max_length=10,
+        default="Pending",
+        choices=[
+            ("Success", "Success"),
+            ("Pending", "Pending"),
+            ("Failed", "Failed"),
+        ],
     )
-    
+
     class Meta:
-        ordering = ['-date']
+        ordering = ["-date"]
         indexes = [
-            models.Index(fields=['user', 'date']), 
-            models.Index(fields=['category']),
+            models.Index(fields=["user", "date"]),
+            models.Index(fields=["category"]),
         ]
         db_table = "tblTransaction"
-    
+
     def __str__(self):
         return f"{self.category.name}: ${self.amount}"
-    
+
     @property
     def type(self):
         return self.category.type
 
     class IncomeExpenseChoices(models.TextChoices):
-        INCOME = 'income', 'Income'
-        EXPENSE = 'expense', 'Expense'
-
+        INCOME = "income", "Income"
+        EXPENSE = "expense", "Expense"
 
 class Budget(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
