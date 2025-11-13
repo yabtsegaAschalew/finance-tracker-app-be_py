@@ -15,10 +15,17 @@ SECRET_KEY = config('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 
 
-# Application definition
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:8080',
+    "http://127.0.0.1:8080", 
+]
+
+
+CORS_ALLOW_CREDENTIALS = True
+
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -27,14 +34,24 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
+
     'rest_framework',
+
     'rest_framework_simplejwt',
+
     'anymail',
+
     'drf_yasg',
+
     'core',
+
+    'corsheaders',
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
+
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -142,7 +159,7 @@ CHAPA_PRIVATE_KEY = config("CHAPA_PRIVATE_KEY")
 DEFAULT_FROM_EMAIL = "yaba8084@gmail.com"
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(days=5),
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=10),
     "REFRESH_TOKEN_LIFETIME": timedelta(hours=1),
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": False,
