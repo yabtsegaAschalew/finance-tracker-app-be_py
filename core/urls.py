@@ -19,6 +19,7 @@ urlpatterns = [
     path("create-budget/", views.create_budget),
     
     path("create-transaction/", views.create_transaction),
+    path("get-transaction/", views.get_transaction),
     path("view-categories/", views.view_categories),
 
     path("pay/", views.chapa_payment, name="payment_gateway"),

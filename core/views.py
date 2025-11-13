@@ -66,6 +66,7 @@ def user_login(request):
 
     username = serializer.validated_data.get("username")
     password = serializer.validated_data.get("password")
+    print("inside login view")
 
     if not username or not password:
         return Response({"message": "Username and password are required"}, status=status.HTTP_400_BAD_REQUEST)
@@ -100,9 +101,7 @@ def activate_account_confirm(request, uidb64, token):
     
 @api_view(["POST"])
 def password_reset_request(request):
-    """
-    Step 1: User submits their email to request a password reset.
-    """
+
     email = request.data.get("email")
 
     if not email:
@@ -120,7 +119,7 @@ def password_reset_request(request):
 
     reset_link = f"{request.scheme}://{request.get_host()}/api/reset-password-confirm/{uid}/{token}/"
 
-
+    
     send_mail(
         subject="Password Reset Request",
         message=f"Click the link below to reset your password:\n\n{reset_link}",
@@ -217,6 +216,16 @@ def create_transaction(request):
             status=status.HTTP_201_CREATED
         )
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_transaction(request):
+    user = request.user.id
+
+    if request.method == "GET":
+        transaction = Transaction.objects.filter(user=user).select_related("category", "user")
+        serializer = TransactionSerializer(transaction, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 @api_view(["GET"])
 def view_categories(request):
