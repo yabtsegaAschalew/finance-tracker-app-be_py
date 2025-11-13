@@ -20,7 +20,7 @@ def payment_gateway(amount, email, first_name, last_name, request, phone_number,
         "tx_ref": tx_ref,
         "phone_number": phone_number,
         "callback_url": f"{request.scheme}://{request.get_host()}/api/chapa/callback/",
-        "return_url": f"{request.scheme}://{request.get_host()}/api/payment-success/",
+        "return_url": "http://localhost:8080/payment-success",
         "customization": {
             "title": "Let us do this",
             "description": "Paying with Confidence with Chapa",
