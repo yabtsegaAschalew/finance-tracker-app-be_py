@@ -13,28 +13,32 @@ from rest_framework.permissions import IsAuthenticated
 import time, uuid
 from datetime import datetime
 from drf_yasg.utils import swagger_auto_schema
-from core.utils import payment_gateway, verify_payment, calculate_user_payment
+from core.utils import payment_gateway, verify_payment, calculate_user_payment, bank_transfer, get_bank, initiate_payment
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from django.contrib.auth.tokens import default_token_generator
 from finance_tracker.settings import DEFAULT_FROM_EMAIL
+from django.db import transaction
 
 token_generator = PasswordResetTokenGenerator()
+tx_ref = f"negade-tx-{uuid.uuid4().hex[:25]}"
 
 @swagger_auto_schema(method='post', request_body=UserSerializer)
 @api_view(["POST"])
 def sign_up(request):
 
     serializer = UserSerializer(data=request.data)
-    print(serializer)
     serializer.is_valid(raise_exception=True)
 
     username = serializer.validated_data.get("username")
     email = serializer.validated_data.get("email")
+    phone_number = serializer.validated_data.get("phone_number")
 
     if User.objects.filter(username=username).exists():
         return Response({"message": "Username taken"}, status=status.HTTP_403_FORBIDDEN)
     if User.objects.filter(email=email).exists():
         return Response({"message": "Email already taken"}, status=status.HTTP_403_FORBIDDEN)
+    if User.objects.filter(phone_number=phone_number).exists():
+        return Response({"message": "Phone number already taken"}, status=status.HTTP_403_FORBIDDEN)
 
 
     user = serializer.save()
@@ -193,7 +197,7 @@ def create_budget(request):
     if request.method == "POST":
         serializer = BudgetSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        serializer.save(user=user)  # Attach current user
+        serializer.save(user=user)  
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     elif request.method == "GET":
@@ -240,7 +244,7 @@ def view_categories(request):
 @permission_classes([IsAuthenticated])
 def chapa_payment(request):
     amount = calculate_user_payment(request.user.id)
-    tx_ref = f"negade-tx-{uuid.uuid4().hex[:12]}"
+    
 
     response = payment_gateway(
         amount["amount_to_pay"],
@@ -274,7 +278,6 @@ def chapa_payment(request):
         
         verify_tx_ref = verify_payment(tx_ref)
         if verify_tx_ref.get("status") == "Success":
-            print("inside verify transaction")
             transaction_update = Transaction.objects.filter(tx_ref=tx_ref)
             transaction_update.status = "Success"
             transaction_update.save()
@@ -309,3 +312,86 @@ def chapa_callback(request):
 
     return Response({"message": "Callback received successfully!"})  
 
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def chapa_bank_transfer(request, bank_id):
+
+    try:
+        account_number = request.data.get("account_number")
+        if not account_number:
+            return Response({"error": "Account number is required"}, status=400)
+
+        payment_info = calculate_user_payment(request.user.id)
+        amount = payment_info.get("amount_to_pay", 0)
+        
+        if amount <= 0:
+            return Response({"error": "No payment required"}, status=400)
+        
+
+        bank_response = bank_transfer(account_number, amount, tx_ref, bank_id)
+        
+
+        with transaction.atomic():  
+            payment_category, _ = Category.objects.get_or_create(
+                name='Payment',
+                defaults={'type': 'expense', 'priority': 'High'}
+            )
+            
+            transaction_obj = Transaction.objects.create(  
+                user=request.user,
+                category=payment_category,
+                amount=amount,
+                description=f"Bank transfer payment via {bank_id}",
+                tx_ref=tx_ref,
+                status='Pending'
+            )
+        
+        return Response({
+            "message": "Bank transfer initiated successfully",
+            "transaction_ref": tx_ref,
+            "amount": amount,
+            "bank_response": bank_response,
+            "status": "pending"
+        })
+        
+    except Exception as e:
+        return Response({"error": str(e)}, status=500)
+
+@api_view(["GET"])
+def get_banks_info(request):
+    if request.method == "GET":
+        return get_bank()
+
+@permission_classes([IsAuthenticated])
+@api_view(["POST"])
+def initiate_payment_ussd(request):
+    if request.method == "POST":
+
+        filter_user = User.objects.filter(id=request.user.id).values("phone_number")
+
+        phone_number = filter_user[0]["phone_number"]
+        data = initiate_payment(tx_ref, phone_number)
+
+        amount = calculate_user_payment(request.user.id)
+
+        if data["status"] == "success":
+
+            serializer = TransactionSerializer(
+            data={
+                'user': request.user.id,
+                'category': 1,  
+                'amount': amount,
+                'description': "",
+                'tx_ref': tx_ref,
+                'status': "Pending"
+            })
+            serializer.save(user=request.user)
+        
+
+
+        return Response(
+            {
+                "data": data,
+            }
+        )

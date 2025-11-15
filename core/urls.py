@@ -26,6 +26,8 @@ urlpatterns = [
     path("payment-success/", views.chapa_success),
 
     # path("chapa-webhook/", views.chapa_webhook),
-    
+    path("get-bank/", views.get_banks_info),
+    path("chapa-bank-transfer/<int:bank_id>", views.chapa_bank_transfer),
+    path("ussd-payment/", views.initiate_payment_ussd)
     
 ]
