@@ -359,9 +359,17 @@ def chapa_bank_transfer(request, bank_id):
         return Response({"error": str(e)}, status=500)
 
 @api_view(["GET"])
+@permission_classes([IsAuthenticated])
 def get_banks_info(request):
     if request.method == "GET":
-        return get_bank()
+        print({
+            "data": get_bank()
+        })
+        return Response(
+        {
+            "data": get_bank()
+        }
+    )
 
 @permission_classes([IsAuthenticated])
 @api_view(["POST"])

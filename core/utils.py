@@ -188,11 +188,9 @@ def get_bank():
     response = requests.get(api_url, headers=headers, data=payload)
     data = response.json()
 
-    return Response(
-        {
-            "data": data
-        }
-    )
+    return data
+
+    
 
 def initiate_payment(tx_ref, phone_number=None):   
 
