@@ -20,7 +20,7 @@ from finance_tracker.settings import DEFAULT_FROM_EMAIL
 from django.db import transaction
 
 token_generator = PasswordResetTokenGenerator()
-tx_ref = f"negade-tx-{uuid.uuid4().hex[:25]}"
+tx_ref = f"tx-{uuid.uuid4().hex[:30]}"
 
 @swagger_auto_schema(method='post', request_body=UserSerializer)
 @api_view(["POST"])
@@ -70,7 +70,7 @@ def user_login(request):
 
     username = serializer.validated_data.get("username")
     password = serializer.validated_data.get("password")
-    print("inside login view")
+
 
     if not username or not password:
         return Response({"message": "Username and password are required"}, status=status.HTTP_400_BAD_REQUEST)
@@ -362,9 +362,7 @@ def chapa_bank_transfer(request, bank_id):
 @permission_classes([IsAuthenticated])
 def get_banks_info(request):
     if request.method == "GET":
-        print({
-            "data": get_bank()
-        })
+
         return Response(
         {
             "data": get_bank()
