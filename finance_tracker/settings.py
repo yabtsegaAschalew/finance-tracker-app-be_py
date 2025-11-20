@@ -15,8 +15,9 @@ SECRET_KEY = config('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = [config('RENDER_EXTERNAL_HOSTNAME')]
 
+CSRF_TRUSTED_ORIGINS = [f"https://+{config('RENDER_EXTERNAL_HOSTNAME')}"]
 
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:8080',
