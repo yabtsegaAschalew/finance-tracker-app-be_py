@@ -15,13 +15,13 @@ SECRET_KEY = config('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = [config('RENDER_EXTERNAL_HOSTNAME')]
+ALLOWED_HOSTS = ["https://finance-tracker-app-be-py.onrender.com"]
 
-CSRF_TRUSTED_ORIGINS = [f"https://+{config('RENDER_EXTERNAL_HOSTNAME')}"]
 
 CORS_ALLOWED_ORIGINS = [
-    'http://localhost:8080',
+    "http://localhost:8080",
     "http://127.0.0.1:8080", 
+    "https://finance-tracker-5b0b.onrender.com"
 ]
 
 

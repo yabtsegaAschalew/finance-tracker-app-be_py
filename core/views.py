@@ -346,6 +346,7 @@ def chapa_bank_transfer(request, bank_id):
                 tx_ref=tx_ref,
                 status='Pending'
             )
+            transaction_obj.save(request.user)
         
         return Response({
             "message": "Bank transfer initiated successfully",
