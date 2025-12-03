@@ -4,7 +4,7 @@ from django.utils import timezone
 
 class User(AbstractUser):
     date_joined = models.DateTimeField(default=timezone.now)
-    currency = models.CharField(max_length=3, default='USD')
+    currency = models.CharField(max_length=3, default='ETB')
     first_name = models.CharField( max_length=150, blank=False)
     last_name = models.CharField( max_length=150, blank=False)
     email = models.EmailField(blank=False)
