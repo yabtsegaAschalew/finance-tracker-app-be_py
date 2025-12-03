@@ -64,10 +64,17 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'finance_tracker.urls'
 
+SECURE_SSL_REDIRECT = True
+
+SESSION_COOKIE_SECURE = True 
+
+CSRF_COOKIE_SECURE = True
+
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [

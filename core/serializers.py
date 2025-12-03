@@ -2,6 +2,8 @@ from rest_framework import serializers
 from core.models import User, Budget, Transaction
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
+from datetime import datetime, timedelta
+from django.utils import timezone
 
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True)
@@ -75,3 +77,61 @@ class ChangePasswordSerializer(serializers.Serializer):
             raise serializers.ValidationError({"new_password": e.messages})
 
         return attrs
+
+class CategorySpendingSerializer(serializers.Serializer):
+    name = serializers.CharField()
+    amount = serializers.DecimalField(max_digits=12, decimal_places=2)
+    percentage = serializers.DecimalField(max_digits=5, decimal_places=2)
+
+class MonthlyDataSerializer(serializers.Serializer):
+    month = serializers.CharField()
+    income = serializers.DecimalField(max_digits=12, decimal_places=2)
+    expenses = serializers.DecimalField(max_digits=12, decimal_places=2)
+
+class BudgetOverviewSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    category_name = serializers.CharField()
+    budget_amount = serializers.DecimalField(max_digits=12, decimal_places=2)
+    spent_amount = serializers.DecimalField(max_digits=12, decimal_places=2)
+    remaining_amount = serializers.DecimalField(max_digits=12, decimal_places=2)
+    percentage_used = serializers.DecimalField(max_digits=5, decimal_places=2)
+
+class UpcomingBillSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    category_name = serializers.CharField()
+    amount = serializers.DecimalField(max_digits=12, decimal_places=2)
+    due_date = serializers.DateField()
+    days_remaining = serializers.IntegerField()
+    is_overdue = serializers.BooleanField()
+
+class RecentTransactionSerializer(serializers.ModelSerializer):
+    category_name = serializers.CharField(source='category.name')
+    category_type = serializers.CharField(source='category.type')
+    
+    class Meta:
+        model = Transaction
+        fields = ['id', 'date', 'amount', 'description', 'category_name', 'category_type', 'status']
+
+class DashboardMetricsSerializer(serializers.Serializer):
+    total_balance = serializers.DecimalField(max_digits=12, decimal_places=2)
+    total_income = serializers.DecimalField(max_digits=12, decimal_places=2)
+    total_expenses = serializers.DecimalField(max_digits=12, decimal_places=2)
+    savings_rate = serializers.DecimalField(max_digits=5, decimal_places=2)
+    budget_health = serializers.DecimalField(max_digits=5, decimal_places=2)
+    total_budget_limit = serializers.DecimalField(max_digits=12, decimal_places=2)
+    total_budget_spent = serializers.DecimalField(max_digits=12, decimal_places=2)
+
+    monthly_data = MonthlyDataSerializer(many=True)
+    category_spending = CategorySpendingSerializer(many=True)
+    budgets_overview = BudgetOverviewSerializer(many=True)
+    upcoming_bills = UpcomingBillSerializer(many=True)
+    recent_transactions = RecentTransactionSerializer(many=True)
+    
+    current_month_income = serializers.DecimalField(max_digits=12, decimal_places=2)
+    current_month_expenses = serializers.DecimalField(max_digits=12, decimal_places=2)
+    current_month_savings = serializers.DecimalField(max_digits=12, decimal_places=2)
+    
+    account_currency = serializers.CharField()
+    user_full_name = serializers.CharField()
+    total_transactions = serializers.IntegerField()
+    active_categories = serializers.IntegerField()
