@@ -1,0 +1,2 @@
+celery -A finance_tracker worker --loglevel=info
+celery -A finance_tracker beat --loglevel=info
