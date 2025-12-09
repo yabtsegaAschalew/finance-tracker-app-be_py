@@ -1,92 +1,90 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Account Activated</title>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Account Activated</title>
 
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: linear-gradient(to bottom right, #f9fafb, #f3f4f6, #e5e7eb);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      padding: 20px;
-    }
+    <style>
+      body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: linear-gradient(to bottom right, #f9fafb, #f3f4f6, #e5e7eb);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        padding: 20px;
+      }
 
-    .card {
-      background: white;
-      width: 100%;
-      max-width: 420px;
-      border-radius: 16px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-      padding: 30px;
-      text-align: center;
-    }
+      .card {
+        background: white;
+        width: 100%;
+        max-width: 420px;
+        border-radius: 16px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        padding: 30px;
+        text-align: center;
+      }
 
-    .icon-wrapper {
-      width: 60px;
-      height: 60px;
-      margin: 0 auto 20px;
-      border-radius: 16px;
-      background: linear-gradient(to bottom right, #22c55e, #86efac);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
+      .icon-wrapper {
+        width: 60px;
+        height: 60px;
+        margin: 0 auto 20px;
+        border-radius: 16px;
+        background: linear-gradient(to bottom right, #22c55e, #86efac);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
 
-    .icon {
-      font-size: 34px;
-      color: white;
-    }
+      .icon {
+        font-size: 34px;
+        color: white;
+      }
 
-    h1 {
-      font-size: 26px;
-      margin-bottom: 8px;
-      font-weight: bold;
-    }
+      h1 {
+        font-size: 26px;
+        margin-bottom: 8px;
+        font-weight: bold;
+      }
 
-    p {
-      color: #6b7280;
-      font-size: 15px;
-      margin-bottom: 25px;
-    }
+      p {
+        color: #6b7280;
+        font-size: 15px;
+        margin-bottom: 25px;
+      }
 
-    .btn {
-      width: 100%;
-      padding: 12px;
-      background: #3b82f6;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      font-size: 16px;
-      cursor: pointer;
-      transition: 0.2s;
-    }
+      .btn {
+        width: 100%;
+        padding: 12px;
+        background: #3b82f6;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        cursor: pointer;
+        transition: 0.2s;
+      }
 
-    .btn:hover {
-      background: #2563eb;
-    }
-  </style>
-</head>
+      .btn:hover {
+        background: #2563eb;
+      }
+    </style>
+  </head>
 
-<body>
+  <body>
+    <div class="card">
+      <div class="icon-wrapper">
+        <span class="icon">✔</span>
+      </div>
 
-  <div class="card">
-    <div class="icon-wrapper">
-      <span class="icon">✔</span>
+      <h1>Account Activated</h1>
+      <p>Your account has been successfully activated. You may now log in.</p>
+
+      <a href="http://localhost:8080">
+        <button class="btn">Go to Login</button>
+      </a>
     </div>
-
-    <h1>Account Activated</h1>
-    <p>Your account has been successfully activated. You may now log in.</p>
-
-    <a href="https://finance-tracker-5b0b.onrender.com">
-      <button class="btn">Go to Login</button>
-    </a>
-  </div>
-
-</body>
+  </body>
 </html>
