@@ -26,7 +26,7 @@ from collections import defaultdict
 import calendar
 
 token_generator = PasswordResetTokenGenerator()
-tx_ref = f"tx-{uuid.uuid4().hex[:30]}"
+tx_ref = f"tx-{uuid.uuid4().hex[:32]}"
 
 @swagger_auto_schema(method='post', request_body=UserSerializer)
 @api_view(["POST"])
