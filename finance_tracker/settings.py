@@ -21,7 +21,7 @@ ALLOWED_HOSTS = ["*"]
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:8080",
     "http://127.0.0.1:8080", 
-    "https://finance-tracker-5b0b.onrender.com"
+    "https://finance-tracker-2v2v.onrender.com"
 ]
 
 
