@@ -222,7 +222,7 @@ def initiate_payment(tx_ref, phone_number=None):
     body = '\r\n'.join(dataList)
     payload = body.encode('utf-8')
     headers = {
-        'Authorization': 'Bearer CHASECK_TEST-mgWrd2rhogka8FINIdgfl7wM2Yo1mpwL',
+        'Authorization': f"Bearer {private_key}",
         'Content-type': 'multipart/form-data; boundary={}'.format(boundary)
     }
 
